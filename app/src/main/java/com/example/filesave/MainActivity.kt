@@ -37,7 +37,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             FileSaveTheme {
-                SaveTextFileUi()
+                ImageVideoTextSave()
             }
         }
     }
