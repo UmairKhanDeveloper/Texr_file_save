@@ -1,5 +1,6 @@
 package com.example.filesave
 
+import android.app.DownloadManager
 import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
@@ -91,7 +92,7 @@ fun ImageVideoTextSave() {
         }
         Spacer(modifier = Modifier.height(20.dp))
         val EXAMPLE_VIDEO_URI =
-            "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+            "https://youtube.com/shorts/KCju8tywZpY?si=lKS0Hzme_4smDziL"
         val context = LocalContext.current
 
         val exoPlayer = remember {
@@ -126,13 +127,13 @@ fun ImageVideoTextSave() {
         Spacer(modifier = Modifier.height(20.dp))
 
         Button(onClick = {
-            val videoUri = Uri.parse("android.resource://${context.packageName}/raw/sample_video")
-            val savedPath = videoFile(context, filename, videoUri)
-
-            Toast.makeText(context, "Video saved successfully at $savedPath", Toast.LENGTH_LONG).show()
+            val videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+            val fileName = "big_buck_bunny"
+            downloadVideoFromUrl(context, videoUrl, fileName)
         }) {
-            Text(text = "Video Saved")
+            Text(text = "Download Video from URL")
         }
+
 
 
     }
@@ -211,42 +212,18 @@ private fun imageFile(context: Context, filename: String, bitmap: Bitmap): Strin
     }
 }
 
-private fun videoFile(context: Context, filename: String, videoUri: Uri) {
-    val fullFilename = if (filename.endsWith(".mp4")) filename else "$filename.mp4"
-
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        val resolver = context.contentResolver
-        val contentValues = ContentValues().apply {
-            put(MediaStore.Downloads.DISPLAY_NAME, fullFilename)
-            put(MediaStore.Downloads.MIME_TYPE, "video/mp4")
-            put(MediaStore.Downloads.IS_PENDING, 1)
-        }
-
-        val collection = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-        val itemUri = resolver.insert(collection, contentValues)
-
-        itemUri?.let { uri ->
-            resolver.openOutputStream(uri)?.use { outputStream ->
-                val inputStream = resolver.openInputStream(videoUri)
-                inputStream?.copyTo(outputStream)
-            }
-
-
-            contentValues.clear()
-            contentValues.put(MediaStore.Downloads.IS_PENDING, 0)
-            resolver.update(uri, contentValues, null, null)
-
-
-        }
-    } else {
-        val file = File(context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), fullFilename)
-
-
-        context.contentResolver.openInputStream(videoUri)?.use { inputStream ->
-            FileOutputStream(file).use { outputStream ->
-                inputStream.copyTo(outputStream)
-            }
-        }
-
+fun downloadVideoFromUrl(context: Context, videoUrl: String, fileName: String) {
+    val request = DownloadManager.Request(Uri.parse(videoUrl)).apply {
+        setTitle(fileName)
+        setDescription("Downloading video...")
+        setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+        setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "$fileName.mp4")
+        setAllowedOverMetered(true)
+        setAllowedOverRoaming(true)
     }
+
+    val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+    downloadManager.enqueue(request)
+
+    Toast.makeText(context, "Download started...", Toast.LENGTH_SHORT).show()
 }
